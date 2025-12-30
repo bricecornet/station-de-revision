@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu de Conjugaison - Les Champions du Français</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --secondary: #f5a623;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --purple: #9b59b6;
+            --bg: #fdfaf0;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body { font-family: var(--font); background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 550px; text-align: center; position: relative; }
+        
+        h1 { color: var(--primary); margin-bottom: 10px; }
+        .hidden { display: none !important; }
+
+        input[type="text"], input[type="number"] { padding: 12px; font-size: 18px; border-radius: 8px; border: 2px solid #ddd; margin: 10px 5px; outline: none; }
+        input[type="text"]:focus { border-color: var(--primary); }
+        
+        button { background-color: var(--primary); color: white; border: none; padding: 12px 24px; font-size: 18px; border-radius: 50px; cursor: pointer; margin: 10px 5px; transition: 0.2s; font-weight: bold; }
+        button:hover { transform: scale(1.05); filter: brightness(1.1); }
+        button.genie { background-color: var(--purple); width: 100%; }
+
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .menu-full { grid-column: span 2; }
+        .op-btn { font-size: 1.1em; padding: 15px; border-radius: 15px; }
+
+        .question-item { background: #f9f9f9; margin: 8px 0; padding: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 1.1em; border-left: 5px solid var(--primary); }
+        .question-item.correct { border-left: 10px solid var(--success); background-color: #e8f8f0; }
+        .question-item.wrong { border-left: 10px solid var(--danger); background-color: #fce8e6; }
+        .correction { font-size: 0.9em; color: var(--danger); margin-left: 10px; font-weight: bold; }
+        
+        input.answer-input { width: 140px; border: 2px solid #ccc; padding: 8px; border-radius: 8px; text-align: center; font-size: 1em; }
+
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; padding: 15px; background: #f0f8ff; border-radius: 15px; font-size: 1.2em; }
+        
+        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .leaderboard-table td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .rank-icon { font-size: 1.2em; }
+
+        #timer-badge { position: absolute; top: 20px; right: 20px; background: #333; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="screen-start">
+            <h1>Salut l'Auteur ! ✍️</h1>
+            <p>Ton prénom :</p>
+            <input type="text" id="user-name" placeholder="Ex: Julie" maxlength="12">
+            <p>Ton âge :</p>
+            <input type="number" id="user-age" min="6" max="15" value="8">
+            <br><br>
+            <button onclick="validerProfil()">Prendre ma plume ! 🚀</button>
+        </div>
+
+        <div id="screen-menu" class="hidden">
+            <h1>Prêt, <span id="display-name"></span> ?</h1>
+            <p>Choisis ton temps de conjugaison :</p>
+            <div class="menu-grid">
+                <button class="op-btn" onclick="lancerJeu('présent')">🕒 Présent</button>
+                <button class="op-btn" onclick="lancerJeu('futur')">🚀 Futur</button>
+                <button class="op-btn" onclick="lancerJeu('imparfait')">📜 Imparfait</button>
+                <button class="op-btn" onclick="lancerJeu('passé composé')">🔙 Passé Composé</button>
+                <div class="menu-full">
+                    <button class="op-btn genie" onclick="lancerJeu('mélange')">🧙‍♂️ GÉNIE DU FRANÇAIS (MÉLANGE)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-game" class="hidden">
+            <div id="timer-badge">⏱️ 0s</div>
+            <h2 id="game-title">Conjugaison</h2>
+            <div id="questions-container"></div>
+            <button onclick="verifierReponses()">Vérifier mes copies ! 🏁</button>
+        </div>
+
+        <div id="screen-result" class="hidden">
+            <h1>Bravo <span id="res-name"></span> !</h1>
+            <div class="result-grid">
+                <div>Note : <b id="score-display"></b></div>
+                <div>Points : <b id="points-display"></b></div>
+            </div>
+            
+            <h3>🏆 Top 10 des Écrivains</h3>
+            <table class="leaderboard-table">
+                <thead><tr><th>Rang</th><th>Nom</th><th>Points</th></tr></thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+
+            <button onclick="location.reload()">🔄 Rejouer</button>
+            <button onclick="window.location.href='index.html'" style="background-color: #7f8c8d;">🏠 Retour au Portail</button>
+        </div>
+    </div>
+
+    <script>
+        let userName = "", userAge = 0, startTime, timerInterval, questions = [];
+
+        const verbesER = ["aimer", "jouer", "chanter", "manger", "parler", "sauter", "regarder", "danser"];
+        const verbesIrreguliers = ["être", "avoir", "aller", "faire", "dire"];
+        const pronoms = ["Je", "Tu", "Il/Elle", "Nous", "Vous", "Ils/Elles"];
+
+        const conjugaisons = {
+            "présent": {
+                "aimer": ["aime", "aimes", "aime", "aimons", "aimez", "aiment"],
+                "être": ["suis", "es", "est", "sommes", "êtes", "sont"],
+                "avoir": ["ai", "as", "a", "avons", "avez", "ont"],
+                "aller": ["vais", "vas", "va", "allons", "allez", "vont"],
+                "faire": ["fais", "fais", "fait", "faisons", "faites", "font"],
+                "dire": ["dis", "dis", "dit", "disons", "dites", "disent"]
+            },
+            "futur": {
+                "aimer": ["aimerai", "aimeras", "aimera", "aimerons", "aimerez", "aimeront"],
+                "être": ["serai", "seras", "sera", "serons", "serez", "seront"],
+                "avoir": ["aurai", "auras", "aura", "aurons", "aurez", "auront"]
+            },
+            "imparfait": {
+                "aimer": ["aimais", "aimais", "aimait", "aimions", "aimiez", "aimaient"],
+                "être": ["étais", "étais", "était", "étions", "étiez", "étaient"]
+            },
+            "passé composé": {
+                "aimer": ["ai aimé", "as aimé", "a aimé", "avons aimé", "avez aimé", "ont aimé"],
+                "être": ["ai été", "as été", "a été", "avons été", "avez été", "ont été"]
+            }
+        };
+
+        function validerProfil() {
+            userName = document.getElementById('user-name').value || "Anonyme";
+            userAge = parseInt(document.getElementById('user-age').value);
+            document.getElementById('display-name').innerText = userName;
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+        }
+
+        function lancerJeu(temps) {
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            document.getElementById('game-title').innerText = "TEMPS : " + temps.toUpperCase();
+            genererQuestions(temps);
+            afficherQuestions();
+            startTimer();
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                document.getElementById('timer-badge').innerText = `⏱️ ${Math.floor((Date.now() - startTime) / 1000)}s`;
+            }, 1000);
+        }
+
+        function genererQuestions(tempsChoisi) {
+            questions = [];
+            let doubles = new Set();
+            while(questions.length < 10) {
+                let temps = tempsChoisi === 'mélange' ? ["présent", "futur", "imparfait"][Math.floor(Math.random()*3)] : tempsChoisi;
+                let liste = (userAge < 9) ? verbesER : [...verbesER, ...verbesIrreguliers];
+                let verbe = liste[Math.floor(Math.random() * liste.length)];
+                let pIdx = Math.floor(Math.random() * 6);
+                
+                let base = conjugaisons[temps][verbe] || conjugaisons[temps]["aimer"];
+                if (verbe.endsWith('er') && !conjugaisons[temps][verbe]) {
+                    let radical = verbe.slice(0, -2);
+                    let term = { "présent": ["e", "es", "e", "ons", "ez", "ent"], "futur": ["erai", "eras", "era", "erons", "erez", "eront"], "imparfait": ["ais", "ais", "ait", "ions", "iez", "aient"] };
+                    base = term[temps].map(t => radical + t);
+                }
+
+                let qKey = `${verbe}-${temps}-${pIdx}`;
+                if(!doubles.has(qKey)) {
+                    doubles.add(qKey);
+                    questions.push({ texte: `${pronoms[pIdx]} (<b>${verbe}</b>) au ${temps}`, reponse: base[pIdx].toLowerCase(), pronon: pronoms[pIdx] });
+                }
+            }
+        }
+
+        function afficherQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = "";
+            questions.forEach((q, i) => {
+                container.innerHTML += `<div class="question-item">
+                    <span>${q.texte} : </span>
+                    <input type="text" class="answer-input" id="rep-${i}" spellcheck="false" autocomplete="off">
+                </div>`;
+            });
+        }
+
+        function verifierReponses() {
+            clearInterval(timerInterval);
+            let score = 0;
+            let tempsFin = Math.floor((Date.now() - startTime) / 1000);
+
+            questions.forEach((q, i) => {
+                const input = document.getElementById(`rep-${i}`);
+                let val = input.value.trim().toLowerCase();
+                if (q.pronon === "Je" && val.startsWith("j'")) val = val.substring(2);
+
+                if(val === q.reponse || (q.pronon === "Je" && "j'" + val === q.reponse)) {
+                    score++;
+                    input.parentElement.classList.add('correct');
+                } else {
+                    input.parentElement.classList.add('wrong');
+                    input.parentElement.innerHTML += `<span class="correction">(${q.reponse})</span>`;
+                }
+            });
+
+            let pts = Math.max(0, (score * 200) - tempsFin);
+            document.getElementById('res-name').innerText = userName;
+            document.getElementById('score-display').innerText = `${score}/10`;
+            document.getElementById('points-display').innerText = pts;
+            
+            sauvegarder(pts);
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+        }
+
+        function sauvegarder(pts) {
+            let scores = JSON.parse(localStorage.getItem('conj_scores_v2') || "[]");
+            scores.push({ name: userName, points: pts });
+            scores.sort((a, b) => b.points - a.points);
+            localStorage.setItem('conj_scores_v2', JSON.stringify(scores.slice(0, 10)));
+            
+            const emojis = ["🥇", "🥈", "🥉", "✒️", "🖋️", "📝", "📖", "📜", "🧐", "✍️"];
+            document.getElementById('leaderboard-body').innerHTML = scores.slice(0, 10).map((s, i) => `
+                <tr><td><span class="rank-icon">${emojis[i] || "🖋️"}</span></td><td>${s.name}</td><td><b>${s.points}</b></td></tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

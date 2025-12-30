@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maths Master - Le Défi des Nombres</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --secondary: #f5a623;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --purple: #9b59b6;
+            --bg: #f0f4f8;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body { font-family: var(--font); background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 550px; text-align: center; position: relative; }
+
+        h1 { color: var(--primary); font-size: 2.2em; margin-bottom: 10px; }
+        .hidden { display: none !important; }
+
+        input[type="number"], input[type="text"] { padding: 12px; font-size: 18px; border-radius: 8px; border: 2px solid #ddd; margin: 10px 5px; }
+        input[type="number"] { width: 90px; text-align: center; }
+        input:focus { outline: none; border-color: var(--primary); }
+
+        button { background-color: var(--primary); color: white; border: none; padding: 12px 24px; font-size: 18px; border-radius: 50px; cursor: pointer; margin: 10px 5px; transition: 0.2s; font-weight: bold; }
+        button:hover { transform: scale(1.05); filter: brightness(1.1); }
+        button.secondary { background-color: #7f8c8d; }
+        button.genie { background-color: var(--purple); width: 100%; margin: 5px 0; }
+
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .menu-full { grid-column: span 2; }
+        .op-btn { font-size: 1.2em; padding: 20px; border-radius: 15px; }
+
+        .question-item { background: #f9f9f9; margin: 10px 0; padding: 15px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 1.3em; font-weight: bold; border-left: 5px solid var(--primary); }
+        .question-item.correct { border-left-color: var(--success); background-color: #e8f8f0; }
+        .question-item.wrong { border-left-color: var(--danger); background-color: #fce8e6; }
+        .correction { font-size: 0.8em; color: var(--danger); margin-left: 10px; }
+
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; padding: 15px; background: #f0f8ff; border-radius: 15px; }
+        .result-value { font-size: 1.8em; font-weight: bold; color: var(--primary); display: block; }
+
+        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; text-align: left; }
+        .leaderboard-table th, td { padding: 10px; border-bottom: 1px solid #eee; }
+        .rank-icon { font-size: 1.2em; }
+
+        #timer-badge { position: absolute; top: 20px; right: 20px; background: #333; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="screen-start">
+            <h1>Salut Champion ! 🧮</h1>
+            <p>Ton prénom :</p>
+            <input type="text" id="user-name" placeholder="Ex: Lucas" maxlength="12">
+            <p>Ton âge :</p>
+            <input type="number" id="user-age" min="6" max="15" value="8">
+            <br><br>
+            <button onclick="validerProfil()">Commencer le Défi ! 🚀</button>
+        </div>
+
+        <div id="screen-menu" class="hidden">
+            <h1>Prêt, <span id="display-name"></span> ?</h1>
+            <p>Choisis ton opération :</p>
+            <div class="menu-grid">
+                <button class="op-btn" onclick="lancerJeu('addition')">➕ Addition</button>
+                <button class="op-btn" onclick="lancerJeu('soustraction')">➖ Soustrac.</button>
+                <button class="op-btn" onclick="lancerJeu('multiplication')">✖️ Multipli.</button>
+                <button class="op-btn" onclick="lancerJeu('division')">➗ Division</button>
+                <div class="menu-full">
+                    <button class="op-btn genie" onclick="lancerJeu('genie')">🧙‍♂️ GÉNIE DES MATHS (MÉLANGE)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-game" class="hidden">
+            <div id="timer-badge">⏱️ 0s</div>
+            <h2 id="game-title">Calculs</h2>
+            <div id="questions-container"></div>
+            <button onclick="verifierReponses()" style="background-color: var(--success); width: 100%;">Vérifier mes résultats ! 🏁</button>
+        </div>
+
+        <div id="screen-result" class="hidden">
+            <h1>Bravo <span id="res-name"></span> !</h1>
+            <div class="result-grid">
+                <div>Score : <span id="score-display" class="result-value"></span></div>
+                <div>Points : <span id="points-display" class="result-value"></span></div>
+            </div>
+            
+            <h3>🏆 Top 10 des Mathématiciens</h3>
+            <table class="leaderboard-table">
+                <thead><tr><th>Rang</th><th>Nom</th><th>Points</th><th>Mode</th></tr></thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+
+            <button onclick="location.reload()">🔄 Rejouer</button>
+            <button onclick="window.location.href='index.html'" class="secondary">🏠 Accueil</button>
+        </div>
+    </div>
+
+    <script>
+        let userName = "", userAge = 0, operationActuelle = '', questions = []; 
+        let startTime, timerInterval;
+
+        function validerProfil() {
+            userName = document.getElementById('user-name').value.trim() || "Anonyme";
+            userAge = parseInt(document.getElementById('user-age').value);
+            document.getElementById('display-name').innerText = userName;
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+        }
+
+        function lancerJeu(type) {
+            operationActuelle = type;
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            document.getElementById('game-title').innerText = type.toUpperCase();
+            genererQuestions(type);
+            afficherQuestions();
+            startTimer();
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                document.getElementById('timer-badge').innerText = `⏱️ ${Math.floor((Date.now() - startTime) / 1000)}s`;
+            }, 1000);
+        }
+
+        function genererQuestions(type) {
+            questions = [];
+            let existing = new Set();
+            while(questions.length < 10) {
+                let a, b, res, qString;
+                let max = userAge >= 10 ? 100 : (userAge >= 8 ? 25 : 12);
+                
+                if(type === 'addition') { a = getRandom(1, max); b = getRandom(1, max); res = a+b; qString = `${a} + ${b}`; }
+                else if(type === 'soustraction') { a = getRandom(5, max*2); b = getRandom(1, a); res = a-b; qString = `${a} - ${b}`; }
+                else if(type === 'multiplication') { a = getRandom(2, userAge>=9?10:5); b = getRandom(1, 10); res = a*b; qString = `${a} × ${b}`; }
+                else if(type === 'division') { b = getRandom(2, 10); res = getRandom(1, 10); a = b*res; qString = `${a} ÷ ${b}`; }
+                else if(type === 'genie') {
+                    const ops = ['addition', 'soustraction', 'multiplication', 'division'];
+                    return genererQuestions(ops[Math.floor(Math.random()*ops.length)]);
+                }
+
+                if(!existing.has(qString)) {
+                    existing.add(qString);
+                    questions.push({ text: qString, reponse: res });
+                }
+            }
+        }
+
+        function getRandom(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+        function afficherQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = "";
+            questions.forEach((q, i) => {
+                container.innerHTML += `<div class="question-item">
+                    <span>${q.text} = </span>
+                    <input type="number" id="rep-${i}" autocomplete="off">
+                </div>`;
+            });
+            setTimeout(() => document.getElementById('rep-0').focus(), 100);
+        }
+
+        function verifierReponses() {
+            clearInterval(timerInterval);
+            let score = 0;
+            let tempsFin = Math.floor((Date.now() - startTime) / 1000);
+
+            questions.forEach((q, i) => {
+                const input = document.getElementById(`rep-${i}`);
+                if(parseInt(input.value) === q.reponse) {
+                    score++;
+                    input.parentElement.classList.add('correct');
+                } else {
+                    input.parentElement.classList.add('wrong');
+                    input.parentElement.innerHTML += `<span class="correction">(${q.reponse})</span>`;
+                }
+            });
+
+            let pts = Math.max(0, (score * 150) - tempsFin);
+            document.getElementById('res-name').innerText = userName;
+            document.getElementById('score-display').innerText = `${score}/10`;
+            document.getElementById('points-display').innerText = pts;
+            
+            sauvegarder(pts);
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+        }
+
+        function sauvegarder(pts) {
+            let scores = JSON.parse(localStorage.getItem('maths_scores_v2') || "[]");
+            scores.push({ name: userName, points: pts, mode: operationActuelle });
+            scores.sort((a, b) => b.points - a.points);
+            localStorage.setItem('maths_scores_v2', JSON.stringify(scores.slice(0, 10)));
+            
+            const emojis = ["🥇", "🥈", "🥉", "🔢", "🧮", "📏", "📐", "🎯", "🧠", "🌟"];
+            document.getElementById('leaderboard-body').innerHTML = scores.slice(0, 10).map((s, i) => `
+                <tr>
+                    <td><span class="rank-icon">${emojis[i] || "⭐"}</span></td>
+                    <td>${s.name}</td>
+                    <td><b>${s.points}</b></td>
+                    <td>${s.mode}</td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

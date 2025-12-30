@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu de Biologie - Le Labo des Curieux</title>
+    <style>
+        :root {
+            --primary: #8e44ad; /* Violet scientifique */
+            --secondary: #27ae60; /* Vert nature */
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --bg: #f4f7f6;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body { font-family: var(--font); background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 550px; text-align: center; position: relative; }
+        
+        h1 { color: var(--primary); margin-top: 0; }
+        .hidden { display: none !important; }
+
+        input[type="text"], input[type="number"], select { padding: 12px; font-size: 16px; border-radius: 8px; border: 2px solid #ddd; margin: 10px 5px; outline: none; }
+        
+        button { background-color: var(--primary); color: white; border: none; padding: 12px 24px; font-size: 18px; border-radius: 50px; cursor: pointer; margin: 10px 5px; transition: 0.2s; font-weight: bold; }
+        button:hover { transform: scale(1.05); filter: brightness(1.1); }
+        button.nature { background-color: var(--secondary); width: 100%; }
+
+        .card { background: #fff; border: 2px solid #eee; border-radius: 15px; padding: 15px; margin: 10px 0; display: flex; align-items: center; justify-content: space-between; transition: 0.3s; border-left: 6px solid var(--primary); }
+        .card:hover { border-color: var(--primary); }
+        .creature-name { font-size: 1.2em; font-weight: bold; color: #333; }
+        
+        .correct { border: 2px solid var(--success) !important; border-left: 10px solid var(--success) !important; background-color: #e8f8f0; }
+        .wrong { border: 2px solid var(--danger) !important; border-left: 10px solid var(--danger) !important; background-color: #fce8e6; }
+        .correction { color: var(--danger); font-size: 0.85em; display: block; margin-top: 5px; font-weight: bold; }
+
+        #timer-badge { position: absolute; top: 20px; right: 20px; background: var(--primary); color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; }
+        
+        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .leaderboard-table td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .rank-icon { font-size: 1.2em; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="screen-start">
+            <h1>🔬 Le Petit Biologiste</h1>
+            <p>Ton nom de chercheur :</p>
+            <input type="text" id="user-name" placeholder="Ex: Darwin" maxlength="15">
+            <br><br>
+            <button onclick="validerProfil()">Ouvrir le laboratoire ! 🧪</button>
+        </div>
+
+        <div id="screen-menu" class="hidden">
+            <h1>Bonjour, Dr. <span id="display-name"></span> !</h1>
+            <p>Quel groupe d'êtres vivants veux-tu classer ?</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button onclick="lancerJeu('animaux')">🐾 Animaux (Mixte)</button>
+                <button class="nature" onclick="lancerJeu('tout')">🌿 Nature & Animaux (Mélange)</button>
+            </div>
+        </div>
+
+        <div id="screen-game" class="hidden">
+            <div id="timer-badge">⏱️ 0s</div>
+            <h2>Analyse en cours...</h2>
+            <div id="questions-container"></div>
+            <button onclick="verifierReponses()">Terminer l'analyse ! 🧬</button>
+        </div>
+
+        <div id="screen-result" class="hidden">
+            <h1>Résultats de l'Analyse</h1>
+            <div style="font-size: 1.2em; margin-bottom: 20px; background: #eee; padding: 15px; border-radius: 15px;">
+                Note : <b id="score-display"></b> | Points : <b id="points-display"></b>
+            </div>
+            
+            <h3>🏆 Tableau d'Honneur</h3>
+            <table class="leaderboard-table">
+                <thead><tr><th>Rang</th><th>Nom</th><th>Points</th></tr></thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+            
+            <button onclick="location.reload()">🔄 Recommencer</button>
+            <button onclick="window.location.href='index.html'" style="background-color: #7f8c8d;">🏠 Retour au Portail</button>
+        </div>
+    </div>
+
+    <script>
+        let userName = "", startTime, timerInterval, questions = [];
+
+        const categories = {
+            "Mammifère": ["Le Lion", "La Baleine", "Le Chien", "L'Éléphant", "Le Chat", "L'Humain", "Le Dauphin", "Le Singe"],
+            "Oiseau": ["L'Aigle", "Le Moineau", "Le Perroquet", "Le Pingouin", "La Chouette", "La Poule"],
+            "Insecte": ["L'Abeille", "La Fourmi", "Le Papillon", "La Coccinelle", "Le Criquet", "La Mouche"],
+            "Reptile": ["Le Serpent", "Le Crocodile", "La Tortue", "Le Lézard", "L'Iguane"],
+            "Plante": ["Le Chêne", "La Rose", "Le Sapin", "Le Tournesol", "La Tulipe", "Le Cactus", "Le Nénuphar"]
+        };
+
+        function validerProfil() {
+            userName = document.getElementById('user-name').value.trim() || "Anonyme";
+            document.getElementById('display-name').innerText = userName;
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+        }
+
+        function lancerJeu(type) {
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            genererQuestions(type);
+            afficherQuestions();
+            startTimer();
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                document.getElementById('timer-badge').innerText = `⏱️ ${Math.floor((Date.now() - startTime) / 1000)}s`;
+            }, 1000);
+        }
+
+        function genererQuestions(type) {
+            questions = [];
+            let possibleItems = [];
+            for (let cat in categories) {
+                if (type === 'animaux' && cat === 'Plante') continue;
+                categories[cat].forEach(item => {
+                    possibleItems.push({ nom: item, cat: cat });
+                });
+            }
+            questions = possibleItems.sort(() => 0.5 - Math.random()).slice(0, 10);
+        }
+
+        function afficherQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = "";
+            const options = Object.keys(categories);
+
+            questions.forEach((q, i) => {
+                container.innerHTML += `
+                    <div class="card" id="card-${i}">
+                        <span class="creature-name">${q.nom}</span>
+                        <div>
+                            <select id="rep-${i}">
+                                <option value="">Choisir...</option>
+                                ${options.map(o => `<option value="${o}">${o}</option>`).join('')}
+                            </select>
+                            <div id="corr-${i}" class="correction hidden"></div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function verifierReponses() {
+            clearInterval(timerInterval);
+            let score = 0;
+            let tempsFin = Math.floor((Date.now() - startTime) / 1000);
+
+            questions.forEach((q, i) => {
+                const select = document.getElementById(`rep-${i}`);
+                const card = document.getElementById(`card-${i}`);
+                const corr = document.getElementById(`corr-${i}`);
+                
+                if (select.value === q.cat) {
+                    score++;
+                    card.classList.add('correct');
+                } else {
+                    card.classList.add('wrong');
+                    corr.innerText = `C'est un(e) : ${q.cat}`;
+                    corr.classList.remove('hidden');
+                }
+            });
+
+            let pts = Math.max(0, (score * 150) - tempsFin);
+            document.getElementById('score-display').innerText = `${score}/10`;
+            document.getElementById('points-display').innerText = pts;
+            
+            sauvegarder(pts);
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+        }
+
+        function sauvegarder(pts) {
+            let scores = JSON.parse(localStorage.getItem('bio_scores_v2') || "[]");
+            scores.push({ name: userName, points: pts });
+            scores.sort((a, b) => b.points - a.points);
+            localStorage.setItem('bio_scores_v2', JSON.stringify(scores.slice(0, 10)));
+            
+            const emojis = ["🥇", "🥈", "🥉", "🐘", "🦅", "🐝", "🐊", "🌻", "🌲", "🔬"];
+            document.getElementById('leaderboard-body').innerHTML = scores.slice(0, 10).map((s, i) => `
+                <tr>
+                    <td><span class="rank-icon">${emojis[i] || "🧬"}</span></td>
+                    <td>${s.name}</td>
+                    <td><b>${s.points}</b> pts</td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

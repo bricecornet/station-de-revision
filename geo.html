@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu de Géo - Les Explorateurs</title>
+    <style>
+        :root {
+            --primary: #27ae60; /* Vert pour la géographie */
+            --secondary: #f39c12;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --royal: #f1c40f;
+            --bg: #eef2f3;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body { font-family: var(--font); background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; position: relative; }
+        
+        h1 { color: var(--primary); margin-bottom: 10px; }
+        .hidden { display: none !important; }
+
+        input[type="text"], input[type="number"], select { padding: 12px; font-size: 16px; border-radius: 8px; border: 2px solid #ddd; margin: 10px 5px; outline: none; }
+        
+        button { background-color: var(--primary); color: white; border: none; padding: 12px 24px; font-size: 18px; border-radius: 50px; cursor: pointer; margin: 10px 5px; transition: 0.2s; font-weight: bold; }
+        button:hover { transform: scale(1.05); filter: brightness(1.1); }
+        button.roi { background-color: var(--royal); color: #333; width: 100%; border: 2px solid #d4ac0d; margin-top: 15px; }
+
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .menu-full { grid-column: span 2; }
+        .op-btn { font-size: 1.1em; padding: 15px; border-radius: 15px; }
+
+        .difficulty-selector { background: #f9f9f9; padding: 15px; border-radius: 15px; margin: 15px 0; border: 1px dashed #ccc; }
+
+        .question-item { background: #f9f9f9; margin: 10px 0; padding: 15px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; border-left: 5px solid var(--primary); }
+        .question-item.correct { border-left: 10px solid var(--success); background-color: #e8f8f0; }
+        .question-item.wrong { border-left: 10px solid var(--danger); background-color: #fce8e6; }
+        
+        .question-text { font-size: 1.1em; font-weight: bold; }
+        .correction { color: var(--danger); font-weight: bold; font-size: 0.9em; }
+
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; padding: 15px; background: #f0f8ff; border-radius: 15px; font-size: 1.2em; }
+        
+        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .leaderboard-table td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .rank-icon { font-size: 1.2em; }
+
+        #timer-badge { position: absolute; top: 20px; right: 20px; background: #333; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="screen-start">
+            <h1>🌍 Aventurier Géo</h1>
+            <p>Ton prénom :</p>
+            <input type="text" id="user-name" placeholder="Ex: Marco Polo" maxlength="15">
+            <div class="difficulty-selector">
+                <p>Niveau de difficulté :</p>
+                <label><input type="radio" name="diff" value="facile" checked> 🟢 Facile (Choix multiple)</label><br>
+                <label><input type="radio" name="diff" value="difficile"> 🔴 Difficile (Saisie libre)</label>
+            </div>
+            <button onclick="validerProfil()">Prendre mon sac à dos ! 🎒</button>
+        </div>
+
+        <div id="screen-menu" class="hidden">
+            <h1>Où vas-tu, <span id="display-name"></span> ?</h1>
+            <div class="menu-grid">
+                <button class="op-btn" onclick="lancerJeu('europe')">🇪🇺 Europe</button>
+                <button class="op-btn" onclick="lancerJeu('afrique')">🌍 Afrique</button>
+                <button class="op-btn" onclick="lancerJeu('asie')">🌏 Asie</button>
+                <button class="op-btn" onclick="lancerJeu('amerique')">🌎 Amérique</button>
+                <div class="menu-full">
+                    <button class="op-btn roi" onclick="lancerJeu('monde')">👑 ROI DU MONDE (MÉLANGE)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-game" class="hidden">
+            <div id="timer-badge">⏱️ 0s</div>
+            <h2 id="game-title">Capitale ?</h2>
+            <div id="questions-container"></div>
+            <button onclick="verifierReponses()">Valider mon voyage ! ✈️</button>
+        </div>
+
+        <div id="screen-result" class="hidden">
+            <h1>Exploration terminée !</h1>
+            <div class="result-grid">
+                <div>Note : <b id="score-display"></b></div>
+                <div>Points : <b id="points-display"></b></div>
+            </div>
+            <h3>🏆 Top 10 des Explorateurs</h3>
+            <table class="leaderboard-table">
+                <thead><tr><th>Rang</th><th>Nom</th><th>Points</th></tr></thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+            
+            <button onclick="location.reload()">🔄 Recommencer</button>
+            <button onclick="window.location.href='index.html'" style="background-color: #7f8c8d;">🏠 Retour au Portail</button>
+        </div>
+    </div>
+
+    <script>
+        let userName = "", difficulty = "facile", startTime, timerInterval, questions = [];
+
+        const dataGéo = {
+            europe: { "France": "Paris", "Espagne": "Madrid", "Italie": "Rome", "Allemagne": "Berlin", "Belgique": "Bruxelles", "Portugal": "Lisbonne", "Royaume-Uni": "Londres", "Grèce": "Athènes", "Suisse": "Berne", "Pays-Bas": "Amsterdam" },
+            afrique: { "Sénégal": "Dakar", "Maroc": "Rabat", "Égypte": "Le Caire", "Algérie": "Alger", "Tunisie": "Tunis", "Cameroun": "Yaoundé", "Côte d'Ivoire": "Yamoussoukro", "Mali": "Bamako", "Madagascar": "Antananarivo", "Congo": "Brazzaville" },
+            asie: { "Japon": "Tokyo", "Chine": "Pékin", "Inde": "New Delhi", "Thaïlande": "Bangkok", "Corée du Sud": "Séoul", "Vietnam": "Hanoï", "Indonésie": "Jakarta", "Liban": "Beyrouth", "Turquie": "Ankara", "Israël": "Jérusalem" },
+            amerique: { "États-Unis": "Washington", "Canada": "Ottawa", "Brésil": "Brasilia", "Argentine": "Buenos Aires", "Mexique": "Mexico", "Chili": "Santiago", "Colombie": "Bogota", "Pérou": "Lima", "Haïti": "Port-au-Prince" }
+        };
+
+        function validerProfil() {
+            userName = document.getElementById('user-name').value.trim() || "Anonyme";
+            difficulty = document.querySelector('input[name="diff"]:checked').value;
+            document.getElementById('display-name').innerText = userName;
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+        }
+
+        function lancerJeu(zone) {
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            genererQuestions(zone);
+            afficherQuestions();
+            startTimer();
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                document.getElementById('timer-badge').innerText = `⏱️ ${Math.floor((Date.now() - startTime) / 1000)}s`;
+            }, 1000);
+        }
+
+        function genererQuestions(zone) {
+            questions = [];
+            let pool = {};
+            if(zone === 'monde') {
+                Object.values(dataGéo).forEach(continent => Object.assign(pool, continent));
+            } else { pool = dataGéo[zone]; }
+
+            let selection = Object.keys(pool).sort(() => 0.5 - Math.random()).slice(0, 10);
+            selection.forEach(p => {
+                let fausses = Object.values(pool).filter(cap => cap !== pool[p]).sort(() => 0.5 - Math.random()).slice(0, 3);
+                questions.push({
+                    pays: p,
+                    reponse: pool[p],
+                    choix: [pool[p], ...fausses].sort(() => 0.5 - Math.random())
+                });
+            });
+        }
+
+        function afficherQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = "";
+            questions.forEach((q, i) => {
+                let inputHTML = (difficulty === "facile") 
+                    ? `<select id="rep-${i}"><option value="">-- Choisis --</option>${q.choix.map(c => `<option value="${c}">${c}</option>`).join('')}</select>`
+                    : `<input type="text" id="rep-${i}" placeholder="Sa capitale..." spellcheck="false">`;
+
+                container.innerHTML += `<div class="question-item">
+                    <span class="question-text">Capitale de : <b>${q.pays}</b> ?</span>
+                    ${inputHTML}
+                </div>`;
+            });
+        }
+
+        function verifierReponses() {
+            clearInterval(timerInterval);
+            let score = 0;
+            let tempsFin = Math.floor((Date.now() - startTime) / 1000);
+
+            questions.forEach((q, i) => {
+                const input = document.getElementById(`rep-${i}`);
+                if(input.value.trim().toLowerCase() === q.reponse.toLowerCase()) {
+                    score++;
+                    input.parentElement.classList.add('correct');
+                } else {
+                    input.parentElement.classList.add('wrong');
+                    input.parentElement.innerHTML += `<div class="correction">❌ C'était : ${q.reponse}</div>`;
+                }
+            });
+
+            let pointsFinal = Math.max(0, (score * 100) - tempsFin);
+            if(difficulty === "difficile") pointsFinal *= 2;
+            
+            document.getElementById('score-display').innerText = `${score}/10`;
+            document.getElementById('points-display').innerText = pointsFinal;
+            
+            sauvegarder(pointsFinal);
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+        }
+
+        function sauvegarder(pts) {
+            let scores = JSON.parse(localStorage.getItem('geo_scores_v2') || "[]");
+            scores.push({ name: userName, points: pts });
+            scores.sort((a, b) => b.points - a.points);
+            localStorage.setItem('geo_scores_v2', JSON.stringify(scores.slice(0, 10)));
+            
+            const emojis = ["🥇", "🥈", "🥉", "🏅", "🏅", "🏃", "🏃", "🧭", "🧭", "🌍"];
+            document.getElementById('leaderboard-body').innerHTML = scores.slice(0, 10).map((s, i) => `
+                <tr><td><span class="rank-icon">${emojis[i]}</span></td><td>${s.name}</td><td><b>${s.points}</b></td></tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

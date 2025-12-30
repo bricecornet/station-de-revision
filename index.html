@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Station de Révision - Le Portail des Génies</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --text: #2c3e50;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* Couleurs des jeux */
+            --color-math: #3498db;
+            --color-conj: #e67e22;
+            --color-geo: #2ecc71;
+            --color-bio: #8e44ad;
+            --color-chimie: #1abc9c;
+            --color-hist: #795548;
+            --color-music: #ff4757;
+            --color-play: #f1c40f;
+        }
+
+        body {
+            font-family: var(--font);
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #34495e;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #7f8c8d;
+        }
+
+        .grid-container {
+            display: grid;
+            /* On définit 2 colonnes fixes pour le format bureau afin de bien contrôler l'étalement */
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-bottom: 5px solid transparent;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Pour Solfège et Tetris : on les fait prendre toute la largeur si on veut un effet bandeau, 
+           ou on les laisse en grille de 2. Ici, la grille de 2 remplit parfaitement l'espace (8 cases). */
+
+        .icon {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+        }
+
+        .game-card h2 {
+            margin: 10px 0;
+            font-size: 1.5em;
+        }
+
+        .game-card p {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            line-height: 1.4;
+            max-width: 300px;
+        }
+
+        /* Styles spécifiques par jeu */
+        .card-math { border-bottom-color: var(--color-math); }
+        .card-math h2 { color: var(--color-math); }
+        
+        .card-conj { border-bottom-color: var(--color-conj); }
+        .card-conj h2 { color: var(--color-conj); }
+        
+        .card-geo { border-bottom-color: var(--color-geo); }
+        .card-geo h2 { color: var(--color-geo); }
+        
+        .card-bio { border-bottom-color: var(--color-bio); }
+        .card-bio h2 { color: var(--color-bio); }
+        
+        .card-chimie { border-bottom-color: var(--color-chimie); }
+        .card-chimie h2 { color: var(--color-chimie); }
+        
+        .card-hist { border-bottom-color: var(--color-hist); }
+        .card-hist h2 { color: var(--color-hist); }
+
+        .card-music { border-bottom-color: var(--color-music); }
+        .card-music h2 { color: var(--color-music); }
+
+        /* Correction : Fond blanc uniforme comme les autres */
+        .card-play { border-bottom-color: var(--color-play); }
+        .card-play h2 { color: var(--color-play); }
+
+        footer {
+            margin-top: 60px;
+            padding: 30px;
+            width: 100%;
+            max-width: 900px;
+            background: #fff;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.02);
+        }
+
+        .btn-download {
+            background-color: #34495e;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-download:hover {
+            background-color: #2c3e50;
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 700px) {
+            .grid-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🚀 Station de Révision</h1>
+        <p class="subtitle">Choisis ta mission et deviens un génie !</p>
+    </header>
+
+    <main class="grid-container">
+        <a href="math.html" class="game-card card-math">
+            <div class="icon">🔢</div>
+            <h2>Mathématiques</h2>
+            <p>Défie la calculatrice et maîtrise les opérations de base.</p>
+        </a>
+
+        <a href="conjugaison.html" class="game-card card-conj">
+            <div class="icon">✍️</div>
+            <h2>Conjugaison</h2>
+            <p>Deviens le maître des verbes au présent, futur et passé.</p>
+        </a>
+
+        <a href="geo.html" class="game-card card-geo">
+            <div class="icon">🌍</div>
+            <h2>Géographie</h2>
+            <p>Explore les pays et leurs capitales tout autour du globe.</p>
+        </a>
+
+        <a href="bio.html" class="game-card card-bio">
+            <div class="icon">🔬</div>
+            <h2>Biologie</h2>
+            <p>Classe les êtres vivants : mammifères, plantes et insectes.</p>
+        </a>
+
+        <a href="chimie.html" class="game-card card-chimie">
+            <div class="icon">⚗️</div>
+            <h2>Chimie</h2>
+            <p>Mémorise les éléments du tableau périodique comme un expert.</p>
+        </a>
+
+        <a href="histoire.html" class="game-card card-hist">
+            <div class="icon">⌛</div>
+            <h2>Histoire</h2>
+            <p>Voyage dans le temps de l'Antiquité à nos jours.</p>
+        </a>
+
+        <a href="solfege.html" class="game-card card-music">
+            <div class="icon">🎼</div>
+            <h2>Solfège</h2>
+            <p>Apprends à lire les notes de musique sur une portée.</p>
+        </a>
+
+        <a href="tetris.html" class="game-card card-play">
+            <div class="icon">🎮</div>
+            <h2>Zone de Pause</h2>
+            <p>Détends-toi avec une partie de Tetris avant de reprendre.</p>
+        </a>
+    </main>
+
+    <footer>
+        <p>Tu veux emporter tout le code avec toi ou le modifier ?</p>
+        <a href="https://github.com/bricecornet/station-de-revision/" target="_blank" class="btn-download">
+            <span>📦 Télécharger le code source (.zip)</span>
+        </a>
+    </footer>
+
+</body>
+</html>

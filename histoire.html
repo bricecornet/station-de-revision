@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronos Master - L'École du Temps</title>
+    <style>
+        :root {
+            --primary: #795548; /* Marron historique */
+            --secondary: #d4af37; /* Or pour le Maître */
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --bg: #fdfaf0;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body { font-family: var(--font); background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; position: relative; border: 1px solid #e0d6c3; }
+        
+        h1 { color: var(--primary); margin-bottom: 10px; font-variant: small-caps; }
+        .hidden { display: none !important; }
+
+        input[type="text"], input[type="number"], select { padding: 12px; font-size: 16px; border-radius: 8px; border: 2px solid #ddd; margin: 10px 5px; outline: none; }
+        
+        button { background-color: var(--primary); color: white; border: none; padding: 12px 24px; font-size: 18px; border-radius: 50px; cursor: pointer; margin: 10px 5px; transition: 0.2s; font-weight: bold; }
+        button:hover { transform: scale(1.05); filter: brightness(1.2); }
+        button.maitre { background-color: var(--secondary); width: 100%; margin-top: 15px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        button.btn-home { background-color: #95a5a6; }
+
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .menu-full { grid-column: span 2; }
+        .op-btn { font-size: 1.1em; padding: 15px; border-radius: 15px; border-bottom: 4px solid rgba(0,0,0,0.2); }
+
+        .history-card { background: #fffcf5; margin: 12px 0; padding: 20px; border-radius: 12px; border-left: 8px solid var(--primary); text-align: left; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); }
+        .event-text { font-size: 1.15em; font-weight: bold; display: block; margin-bottom: 10px; color: #333; line-height: 1.4; }
+
+        .correct { border-color: var(--success) !important; background-color: #e8f8f0; }
+        .wrong { border-color: var(--danger) !important; background-color: #fce8e6; }
+        .correction { color: var(--danger); font-weight: bold; font-size: 0.95em; margin-top: 8px; border-top: 1px dashed var(--danger); padding-top: 5px; }
+
+        #timer-badge { position: absolute; top: 20px; right: 20px; background: #3e2723; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+        
+        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .leaderboard-table td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .rank-icon { font-size: 1.3em; }
+
+        .difficulty-selector { background: #f9f3e6; padding: 15px; border-radius: 15px; margin: 15px 0; border: 1px dashed var(--primary); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="screen-start">
+            <h1>⌛ Chronos Master</h1>
+            <p>Ton nom d'Historien :</p>
+            <input type="text" id="user-name" placeholder="Ex: Hérodote" maxlength="15">
+            <div class="difficulty-selector">
+                <p style="margin-top:0; font-weight:bold;">Niveau d'archives :</p>
+                <label style="cursor:pointer"><input type="radio" name="diff" value="facile" checked> 📜 Choix multiple (Simple)</label><br>
+                <label style="cursor:pointer"><input type="radio" name="diff" value="expert"> 🏛️ Saisie libre (Expert)</label>
+            </div>
+            <button onclick="validerProfil()">Ouvrir les archives 📜</button>
+        </div>
+
+        <div id="screen-menu" class="hidden">
+            <h1>Quelle époque, <span id="display-name"></span> ?</h1>
+            <div class="menu-grid">
+                <button class="op-btn" onclick="lancerJeu('antiquite')">🏛️ Antiquité</button>
+                <button class="op-btn" onclick="lancerJeu('moyenage')">🏰 Moyen-Âge</button>
+                <button class="op-btn" onclick="lancerJeu('moderne')">⛵ Temps Modernes</button>
+                <button class="op-btn" onclick="lancerJeu('contemporaine')">🚀 Contemporaine</button>
+                <div class="menu-full">
+                    <button class="op-btn maitre" onclick="lancerJeu('maitre')">👑 MAÎTRE DE L'HISTOIRE (MÉLANGE)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-game" class="hidden">
+            <div id="timer-badge">⏱️ 0s</div>
+            <h2 id="game-title" style="font-size: 1.1em; color: var(--primary);">Exploration Temporelle</h2>
+            <div id="questions-container"></div>
+            <button onclick="verifierReponses()" style="width:100%; margin-top:20px; background: var(--success)">Valider ma chronologie ✍️</button>
+        </div>
+
+        <div id="screen-result" class="hidden">
+            <h1>Voyage Terminé !</h1>
+            <div style="font-size: 1.2em; margin-bottom: 20px; background: #fcfcfc; padding: 15px; border-radius: 15px;">
+                Note : <b id="score-display"></b> | Points : <b id="points-display"></b>
+            </div>
+            
+            <h3>🏆 Panthéon des Historiens</h3>
+            <table class="leaderboard-table">
+                <thead><tr><th>Rang</th><th>Nom</th><th>Points</th></tr></thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+            
+            <button onclick="location.reload()">🔄 Recommencer</button>
+            <button onclick="window.location.href='index.html'" class="btn-home">🏠 Accueil</button>
+        </div>
+    </div>
+
+    <script>
+        let userName = "", difficulty = "facile", startTime, timerInterval, questions = [];
+
+        const historyDB = [
+            // ANTIQUITÉ
+            {q: "Apparition de l'écriture en Mésopotamie", a: "-3500", p: "antiquite"},
+            {q: "Unification de l'Égypte par Narmer", a: "-3100", p: "antiquite"},
+            {q: "Construction de la pyramide de Khéops", a: "-2560", p: "antiquite"},
+            {q: "Code de Hammurabi", a: "-1750", p: "antiquite"},
+            {q: "Début du règne de Ramsès II", a: "-1279", p: "antiquite"},
+            {q: "Premiers Jeux Olympiques en Grèce", a: "-776", p: "antiquite"},
+            {q: "Fondation légendaire de Rome", a: "-753", p: "antiquite"},
+            {q: "Bataille de Marathon", a: "-490", p: "antiquite"},
+            {q: "Mort d'Alexandre le Grand", a: "-323", p: "antiquite"},
+            {q: "Assassinat de Jules César", a: "-44", p: "antiquite"},
+            {q: "Chute de l'Empire Romain d'Occident", a: "476", p: "antiquite"},
+            // MOYEN ÂGE
+            {q: "Baptême de Clovis", a: "496", p: "moyenage"},
+            {q: "L'Hégire (Début du calendrier musulman)", a: "622", p: "moyenage"},
+            {q: "Bataille de Poitiers (Charles Martel)", a: "732", p: "moyenage"},
+            {q: "Sacre de Charlemagne Empereur", a: "800", p: "moyenage"},
+            {q: "Élection d'Hugues Capet", a: "987", p: "moyenage"},
+            {q: "Bataille d'Hastings (Guillaume le Conquérant)", a: "1066", p: "moyenage"},
+            {q: "Prise de Jérusalem (1ère Croisade)", a: "1099", p: "moyenage"},
+            {q: "Grande Peste Noire en Europe", a: "1347", p: "moyenage"},
+            {q: "Prise d'Orléans par Jeanne d'Arc", a: "1429", p: "moyenage"},
+            {q: "Chute de Constantinople aux Turcs", a: "1453", p: "moyenage"},
+            // TEMPS MODERNES
+            {q: "Découverte de l'Amérique par Colomb", a: "1492", p: "moderne"},
+            {q: "Bataille de Marignan (François Ier)", a: "1515", p: "moderne"},
+            {q: "Thèses de Luther (Début Réforme)", a: "1517", p: "moderne"},
+            {q: "Massacre de la Saint-Barthélemy", a: "1572", p: "moderne"},
+            {q: "Édit de Nantes par Henri IV", a: "1598", p: "moderne"},
+            {q: "Mort du Roi Soleil (Louis XIV)", a: "1715", p: "moderne"},
+            {q: "Indépendance des États-Unis", a: "1776", p: "moderne"},
+            // CONTEMPORAINE
+            {q: "Prise de la Bastille", a: "1789", p: "contemporaine"},
+            {q: "Sacre de Napoléon Ier", a: "1804", p: "contemporaine"},
+            {q: "Abolition de l'esclavage en France", a: "1848", p: "contemporaine"},
+            {q: "Inauguration de la Tour Eiffel", a: "1889", p: "contemporaine"},
+            {q: "Début de la 1ère Guerre Mondiale", a: "1914", p: "contemporaine"},
+            {q: "Appel du 18 juin (De Gaulle)", a: "1940", p: "contemporaine"},
+            {q: "Droit de vote des femmes en France", a: "1944", p: "contemporaine"},
+            {q: "Lancement de Spoutnik (Espace)", a: "1957", p: "contemporaine"},
+            {q: "Chute du Mur de Berlin", a: "1989", p: "contemporaine"},
+            {q: "Attentats du 11 Septembre (New York)", a: "2001", p: "contemporaine"}
+        ];
+
+        function validerProfil() {
+            userName = document.getElementById('user-name').value.trim() || "Anonyme";
+            difficulty = document.querySelector('input[name="diff"]:checked').value;
+            document.getElementById('display-name').innerText = userName;
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+        }
+
+        function lancerJeu(periode) {
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            let pool = (periode === 'maitre') ? historyDB : historyDB.filter(e => e.p === periode);
+            questions = pool.sort(() => 0.5 - Math.random()).slice(0, 10);
+            afficherQuestions();
+            startTimer();
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                document.getElementById('timer-badge').innerText = `⏱️ ${Math.floor((Date.now() - startTime) / 1000)}s`;
+            }, 1000);
+        }
+
+        function formatYear(y) {
+            let val = parseInt(y);
+            return val < 0 ? Math.abs(val) + " av. J.-C." : val;
+        }
+
+        function afficherQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = "";
+            const allPossibleYears = historyDB.map(e => e.a);
+
+            questions.forEach((q, i) => {
+                let inputHTML = "";
+                if(difficulty === "facile") {
+                    let choices = [q.a];
+                    while(choices.length < 5) {
+                        let yr = allPossibleYears[Math.floor(Math.random()*allPossibleYears.length)];
+                        if(!choices.includes(yr)) choices.push(yr);
+                    }
+                    choices.sort((a,b) => parseInt(a) - parseInt(b));
+                    inputHTML = `<select id="rep-${i}"><option value="">-- Choisir l'année --</option>` + 
+                                choices.map(c => `<option value="${c}">${formatYear(c)}</option>`).join('') + `</select>`;
+                } else {
+                    inputHTML = `<input type="text" id="rep-${i}" placeholder="Ex: 1789" style="width:140px">`;
+                }
+
+                container.innerHTML += `
+                    <div class="history-card" id="card-${i}">
+                        <span class="event-text">${q.q}</span>
+                        ${inputHTML}
+                        <div id="corr-${i}" class="correction hidden"></div>
+                    </div>`;
+            });
+        }
+
+        function verifierReponses() {
+            clearInterval(timerInterval);
+            let score = 0;
+            let finalTime = Math.floor((Date.now() - startTime) / 1000);
+
+            questions.forEach((q, i) => {
+                const input = document.getElementById(`rep-${i}`);
+                const card = document.getElementById(`card-${i}`);
+                if(input.value.trim() === q.a) {
+                    score++;
+                    card.classList.add('correct');
+                } else {
+                    card.classList.add('wrong');
+                    const corr = document.getElementById(`corr-${i}`);
+                    corr.innerText = `⌛ Vérité historique : ${formatYear(q.a)}`;
+                    corr.classList.remove('hidden');
+                }
+            });
+
+            let pts = (score * 250) - (finalTime * 2);
+            if(difficulty === "expert") pts += 500;
+            
+            document.getElementById('score-display').innerText = `${score}/10`;
+            document.getElementById('points-display').innerText = Math.max(0, pts);
+            sauvegarder(Math.max(0, pts));
+            
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+        }
+
+        function sauvegarder(pts) {
+            let scores = JSON.parse(localStorage.getItem('hist_scores_vfinal') || "[]");
+            scores.push({ name: userName, points: pts });
+            scores.sort((a, b) => b.points - a.points);
+            localStorage.setItem('hist_scores_vfinal', JSON.stringify(scores.slice(0, 10)));
+            
+            const trophies = ["👑", "🏺", "🛡️", "⚔️", "🏹", "📜", "🕯️", "🏛️", "🏰", "🛶"];
+            document.getElementById('leaderboard-body').innerHTML = scores.slice(0, 10).map((s, i) => 
+                `<tr><td><span class="rank-icon">${trophies[i] || "📜"}</span> ${i+1}</td><td>${s.name}</td><td><b>${s.points}</b> pts</td></tr>`).join('');
+        }
+    </script>
+</body>
+</html>

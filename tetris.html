@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pause Récompense - Tetris Zen</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2ecc71;
+            --danger: #e74c3c;
+            --bg: #fdfaf0; /* Même fond que l'Histoire */
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --card-bg: #ffffff;
+        }
+
+        body { 
+            font-family: var(--font); 
+            background-color: var(--bg); 
+            color: #333;
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px;
+        }
+
+        h1 { color: var(--primary); margin-bottom: 20px; font-variant: small-caps; }
+
+        .game-container {
+            display: flex;
+            gap: 25px;
+            padding: 25px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            position: relative;
+            border: 1px solid #e0d6c3;
+        }
+
+        canvas {
+            background-color: #f8f9fa; /* Fond clair pour le jeu */
+            border: 4px solid #eee;
+            border-radius: 10px;
+            display: block;
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-width: 200px;
+        }
+
+        .stat-box {
+            background: #f1f8ff;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 12px;
+            border: 1px solid #d1e3f8;
+        }
+
+        .stat-label { font-size: 0.85em; color: #666; font-weight: bold; }
+        .stat-value { font-size: 1.6em; font-weight: bold; color: var(--primary); }
+
+        input[type="text"] {
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            margin-bottom: 15px;
+            width: 80%;
+            outline: none;
+        }
+
+        button {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+            box-shadow: 0 4px 0 #27ae60;
+        }
+
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #27ae60; }
+        button:active { transform: translateY(2px); box-shadow: 0 0 0 #27ae60; }
+        
+        button.home { background-color: #95a5a6; box-shadow: 0 4px 0 #7f8c8d; margin-top: 10px; }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+            z-index: 10;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .hidden { display: none !important; }
+
+        .leaderboard-table {
+            width: 100%;
+            margin-top: 15px;
+            font-size: 0.9em;
+            border-collapse: collapse;
+        }
+        .leaderboard-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+        
+        .controls-hint {
+            font-size: 0.8em;
+            color: #777;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎮 Pause Récréative</h1>
+
+    <div class="game-container">
+        <div id="overlay-start" class="overlay">
+            <h2 style="color: var(--primary)">Champion en herbe ?</h2>
+            <p>Quel est ton nom ?</p>
+            <input type="text" id="player-name" placeholder="Ex: Jules" maxlength="12">
+            <button onclick="validerNom()">COMMENCER LE JEU !</button>
+        </div>
+
+        <div id="overlay-over" class="overlay hidden">
+            <h2 style="color: var(--danger);">Fin de la pause ! 🎈</h2>
+            <p>Ton score : <b id="final-score" style="font-size: 1.5em;">0</b></p>
+            
+            <div style="width: 100%;">
+                <h3 style="font-size: 1em; border-bottom: 2px solid var(--bg); padding-bottom: 5px;">🏆 Meilleurs Joueurs</h3>
+                <table class="leaderboard-table">
+                    <tbody id="leaderboard-body"></tbody>
+                </table>
+            </div>
+
+            <button onclick="resetGame()" style="margin-top: 15px;">REJOUER 🔄</button>
+            <button class="home" onclick="window.location.href='index.html'">RETOUR AUX COURS</button>
+        </div>
+
+        <canvas id="tetris" width="240" height="400"></canvas>
+        
+        <div class="side-panel">
+            <div>
+                <div class="stat-box">
+                    <div class="stat-label">Joueur</div>
+                    <div id="display-name" class="stat-value" style="font-size: 1.1em; color: #333;">-</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Score</div>
+                    <div id="score" class="stat-value">0</div>
+                </div>
+            </div>
+
+            <div class="controls-hint">
+                <b>Comment jouer :</b><br>
+                ⬅️ ➡️ : Déplacer<br>
+                ⬆️ : Tourner la forme<br>
+                ⬇️ : Descendre vite<br>
+                <b>Espace</b> : Tomber
+            </div>
+
+            <button class="home" onclick="window.location.href='index.html'">Quitter</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('tetris');
+        const context = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        context.scale(20, 20);
+
+        let playerName = "";
+        let animationId;
+
+        // Couleurs plus douces pour les pièces (Pastels)
+        const colors = [null, '#ff7675', '#74b9ff', '#55efc4', '#a29bfe', '#fab1a0', '#ffeaa7', '#81ecec'];
+
+        function validerNom() {
+            playerName = document.getElementById('player-name').value.trim() || "Anonyme";
+            document.getElementById('display-name').innerText = playerName;
+            document.getElementById('overlay-start').classList.add('hidden');
+            startGame();
+        }
+
+        function createMatrix(w, h) {
+            const matrix = [];
+            while (h--) matrix.push(new Array(w).fill(0));
+            return matrix;
+        }
+
+        function createPiece(type) {
+            if (type === 'T') return [[0, 0, 0], [1, 1, 1], [0, 1, 0]];
+            if (type === 'O') return [[2, 2], [2, 2]];
+            if (type === 'L') return [[0, 3, 0], [0, 3, 0], [0, 3, 3]];
+            if (type === 'J') return [[0, 4, 0], [0, 4, 0], [4, 4, 0]];
+            if (type === 'I') return [[0, 5, 0, 0], [0, 5, 0, 0], [0, 5, 0, 0], [0, 5, 0, 0]];
+            if (type === 'S') return [[0, 6, 6], [6, 6, 0], [0, 0, 0]];
+            if (type === 'Z') return [[7, 7, 0], [0, 7, 7], [0, 0, 0]];
+        }
+
+        function draw() {
+            context.fillStyle = '#f8f9fa';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            drawMatrix(arena, {x: 0, y: 0});
+            drawMatrix(player.matrix, player.pos);
+        }
+
+        function drawMatrix(matrix, offset) {
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        context.fillStyle = colors[value];
+                        context.fillRect(x + offset.x, y + offset.y, 1, 1);
+                        // Bordure de bloc plus discrète
+                        context.strokeStyle = 'rgba(255,255,255,0.5)';
+                        context.lineWidth = 0.05;
+                        context.strokeRect(x + offset.x, y + offset.y, 1, 1);
+                    }
+                });
+            });
+        }
+
+        function merge(arena, player) {
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        arena[y + player.pos.y][x + player.pos.x] = value;
+                    }
+                });
+            });
+        }
+
+        function rotate(matrix, dir) {
+            for (let y = 0; y < matrix.length; ++y) {
+                for (let x = 0; x < y; ++x) {
+                    [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+                }
+            }
+            if (dir > 0) matrix.forEach(row => row.reverse());
+            else matrix.reverse();
+        }
+
+        function collide(arena, player) {
+            const [m, o] = [player.matrix, player.pos];
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function playerDrop() {
+            player.pos.y++;
+            if (collide(arena, player)) {
+                player.pos.y--;
+                merge(arena, player);
+                playerReset();
+                arenaSweep();
+                updateScore();
+            }
+            dropCounter = 0;
+        }
+
+        function arenaSweep() {
+            let rowCount = 1;
+            outer: for (let y = arena.length - 1; y > 0; --y) {
+                for (let x = 0; x < arena[y].length; ++x) {
+                    if (arena[y][x] === 0) continue outer;
+                }
+                const row = arena.splice(y, 1)[0].fill(0);
+                arena.unshift(row);
+                ++y;
+                player.score += rowCount * 10;
+                rowCount *= 2;
+            }
+        }
+
+        function playerReset() {
+            const pieces = 'ILJOTSZ';
+            player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+            player.pos.y = 0;
+            player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+            if (collide(arena, player)) {
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            cancelAnimationFrame(animationId);
+            document.getElementById('final-score').innerText = player.score;
+            enregistrerScore(player.score);
+            document.getElementById('overlay-over').classList.remove('hidden');
+        }
+
+        function enregistrerScore(score) {
+            let scores = JSON.parse(localStorage.getItem('tetris_scores_v2') || "[]");
+            scores.push({ name: playerName, score: score });
+            scores.sort((a, b) => b.score - a.score);
+            scores = scores.slice(0, 5);
+            localStorage.setItem('tetris_scores_v2', JSON.stringify(scores));
+
+            const medals = ["🥇", "🥈", "🥉", "🏅", "🎗️"];
+            document.getElementById('leaderboard-body').innerHTML = scores.map((s, i) => `
+                <tr><td>${medals[i]} <b>${s.name}</b></td><td>${s.score} pts</td></tr>
+            `).join('');
+        }
+
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+
+        function update(time = 0) {
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) playerDrop();
+            draw();
+            animationId = requestAnimationFrame(update);
+        }
+
+        function updateScore() {
+            scoreElement.innerText = player.score;
+        }
+
+        const arena = createMatrix(12, 20);
+        const player = { pos: {x: 0, y: 0}, matrix: null, score: 0 };
+
+        function startGame() {
+            player.score = 0;
+            arena.forEach(row => row.fill(0));
+            playerReset();
+            updateScore();
+            update();
+        }
+
+        function resetGame() {
+            document.getElementById('overlay-over').classList.add('hidden');
+            startGame();
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.keyCode === 37) player.pos.x--; if(collide(arena, player)) player.pos.x++;
+            else if (event.keyCode === 39) player.pos.x++; if(collide(arena, player)) player.pos.x--;
+            else if (event.keyCode === 40) playerDrop();
+            else if (event.keyCode === 38) {
+                const pos = player.pos.x;
+                rotate(player.matrix, 1);
+                if(collide(arena, player)) rotate(player.matrix, -1);
+            }
+            else if (event.keyCode === 32) {
+                while(!collide(arena, player)) { player.pos.y++; }
+                player.pos.y--; playerDrop();
+            }
+        });
+    </script>
+</body>
+</html>

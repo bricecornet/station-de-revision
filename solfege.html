@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solfège Master - L'École de Musique</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #e74c3c;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --bg: #f8f9fa;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body { font-family: var(--font); background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 550px; text-align: center; position: relative; }
+        
+        h1 { color: var(--primary); margin-bottom: 5px; }
+        .hidden { display: none !important; }
+
+        input[type="text"] { padding: 12px; font-size: 16px; border-radius: 8px; border: 2px solid #ddd; margin: 10px 0; width: 80%; outline: none; }
+
+        /* Style de la Portée Musicale */
+        .staff-container {
+            background: #fff;
+            border: 2px solid #333;
+            border-radius: 15px;
+            height: 180px;
+            margin: 25px 0;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .line { width: 90%; height: 2px; background: #333; margin: 20px auto; position: relative; }
+
+        .clef { position: absolute; left: 15px; top: 10px; font-size: 90px; line-height: 1; color: #222; }
+
+        .note-head {
+            width: 26px;
+            height: 20px;
+            background: black;
+            border-radius: 50%;
+            position: absolute;
+            transform: rotate(-15deg);
+            z-index: 10;
+            transition: all 0.2s ease-out;
+        }
+
+        .extra-line { width: 42px; height: 2px; background: #333; position: absolute; left: -8px; top: 10px; }
+
+        .piano-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
+
+        button { background-color: var(--primary); color: white; border: none; padding: 12px; font-size: 16px; border-radius: 50px; cursor: pointer; transition: 0.2s; font-weight: bold; }
+        button:hover { transform: scale(1.05); filter: brightness(1.2); }
+
+        #timer-badge { position: absolute; top: 20px; right: 20px; background: #333; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+        
+        .score-box { font-size: 1.3em; font-weight: bold; color: var(--primary); margin-top: 10px; }
+
+        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .leaderboard-table td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .rank-icon { font-size: 1.2em; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="screen-start">
+            <h1>🎼 Solfège Master</h1>
+            <p>Deviens un virtuose de la lecture de notes !</p>
+            <input type="text" id="user-name" placeholder="Ton nom de Maestro" maxlength="15">
+            <br>
+            <button onclick="validerProfil()" style="width: 80%; margin-top: 10px;">Entrer en scène 🎹</button>
+        </div>
+
+        <div id="screen-game" class="hidden">
+            <div id="timer-badge">⏱️ 0s</div>
+            <div class="score-box">Progression : <span id="current-q">1</span> / 10</div>
+            
+            <div class="staff-container">
+                <div class="clef">𝄞</div>
+                <div style="width: 80%; position: relative; margin-top: 15px;">
+                    <div class="line"></div>
+                    <div class="line"></div>
+                    <div class="line"></div>
+                    <div class="line"></div>
+                    <div class="line"></div>
+                    <div id="note-display" class="note-head"></div>
+                </div>
+            </div>
+
+            <p style="font-weight: bold;">Quelle est cette note ?</p>
+            <div class="piano-keys">
+                <button onclick="verifierNote('DO')">DO</button>
+                <button onclick="verifierNote('RÉ')">RÉ</button>
+                <button onclick="verifierNote('MI')">MI</button>
+                <button onclick="verifierNote('FA')">FA</button>
+                <button onclick="verifierNote('SOL')">SOL</button>
+                <button onclick="verifierNote('LA')">LA</button>
+                <button onclick="verifierNote('SI')">SI</button>
+            </div>
+        </div>
+
+        <div id="screen-result" class="hidden">
+            <h1>👏 Applaudissements !</h1>
+            <div style="font-size: 1.3em; margin-bottom: 15px;">
+                Score : <b id="score-display"></b> | Points : <b id="points-display"></b>
+            </div>
+            
+            <h3>🏆 Panthéon des Maestro</h3>
+            <table class="leaderboard-table">
+                <thead>
+                    <tr><th>Rang</th><th>Nom</th><th>Points</th></tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+            
+            <button onclick="location.reload()" style="margin-top: 20px;">🔄 Rejouer</button>
+            <button onclick="window.location.href='index.html'" style="background:#7f8c8d; margin-top: 20px;">🏠 Accueil</button>
+        </div>
+    </div>
+
+    <script>
+        let userName = "", score = 0, questionCount = 0, currentNote = "", startTime, timerInterval;
+
+        const notePositions = [
+            { name: "DO", top: 124, extra: true },
+            { name: "RÉ", top: 114, extra: false },
+            { name: "MI", top: 104, extra: false },
+            { name: "FA", top: 94, extra: false },
+            { name: "SOL", top: 84, extra: false },
+            { name: "LA", top: 74, extra: false },
+            { name: "SI", top: 64, extra: false },
+            { name: "DO", top: 54, extra: false },
+            { name: "RÉ", top: 44, extra: false },
+            { name: "MI", top: 34, extra: false }
+        ];
+
+        function validerProfil() {
+            userName = document.getElementById('user-name').value.trim() || "Anonyme";
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            lancerJeu();
+        }
+
+        function lancerJeu() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                let sec = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timer-badge').innerText = `⏱️ ${sec}s`;
+            }, 1000);
+            genererNote();
+        }
+
+        function genererNote() {
+            if (questionCount >= 10) {
+                terminerJeu();
+                return;
+            }
+            document.getElementById('current-q').innerText = questionCount + 1;
+            let rand = Math.floor(Math.random() * notePositions.length);
+            let noteObj = notePositions[rand];
+            currentNote = noteObj.name;
+            
+            const element = document.getElementById('note-display');
+            element.style.top = noteObj.top + "px";
+            element.style.left = "50%";
+            element.innerHTML = noteObj.extra ? '<div class="extra-line"></div>' : '';
+        }
+
+        function verifierNote(reponse) {
+            if (reponse === currentNote) score++;
+            questionCount++;
+            genererNote();
+        }
+
+        function terminerJeu() {
+            clearInterval(timerInterval);
+            let finalTime = Math.floor((Date.now() - startTime) / 1000);
+            let totalPoints = (score * 500) - (finalTime * 5);
+            totalPoints = Math.max(0, totalPoints);
+
+            document.getElementById('score-display').innerText = `${score}/10`;
+            document.getElementById('points-display').innerText = totalPoints;
+            
+            sauvegarder(totalPoints);
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+        }
+
+        function sauvegarder(pts) {
+            let scores = JSON.parse(localStorage.getItem('solfege_scores') || "[]");
+            scores.push({ name: userName, points: pts });
+            scores.sort((a, b) => b.points - a.points);
+            localStorage.setItem('solfege_scores', JSON.stringify(scores.slice(0, 8)));
+            
+            const icons = ["🥇", "🥈", "🥉", "🎸", "🎺", "🎻", "🎷", "🎹"];
+            document.getElementById('leaderboard-body').innerHTML = scores.slice(0, 8).map((s, i) => `
+                <tr>
+                    <td><span class="rank-icon">${icons[i] || "🎵"}</span></td>
+                    <td>${s.name}</td>
+                    <td><b>${s.points}</b></td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

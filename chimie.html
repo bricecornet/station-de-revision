@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chimie Master - Le Tableau des Éléments</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #e67e22; /* Orange chimie */
+            --success: #27ae60;
+            --danger: #c0392b;
+            --bg: #ecf0f1;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body { font-family: var(--font); background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 550px; text-align: center; position: relative; }
+        
+        h1 { color: var(--primary); margin-bottom: 5px; }
+        .hidden { display: none !important; }
+
+        input[type="text"], input[type="number"], select { padding: 12px; font-size: 16px; border-radius: 8px; border: 2px solid #ddd; margin: 10px 5px; outline: none; }
+        
+        button { background-color: var(--primary); color: white; border: none; padding: 12px 24px; font-size: 18px; border-radius: 50px; cursor: pointer; margin: 10px 5px; transition: 0.2s; font-weight: bold; }
+        button:hover { transform: scale(1.05); filter: brightness(1.2); }
+        button.expert { background-color: var(--secondary); }
+
+        .element-card { background: #fdfdfd; border: 3px solid #eee; border-radius: 15px; padding: 20px; margin: 15px 0; position: relative; border-bottom: 5px solid #ddd; }
+        .symbol-display { font-size: 3.5em; font-weight: bold; color: var(--primary); display: block; margin-bottom: 5px; }
+        .atomic-number { position: absolute; top: 10px; left: 15px; font-weight: bold; color: #7f8c8d; font-size: 1.2em; }
+
+        .correct { border-color: var(--success) !important; background-color: #e8f8f0; }
+        .wrong { border-color: var(--danger) !important; background-color: #fce8e6; }
+        .correction { color: var(--danger); font-weight: bold; margin-top: 10px; display: block; font-size: 0.9em; }
+
+        #timer-badge { position: absolute; top: 20px; right: 20px; background: #34495e; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; }
+        
+        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .leaderboard-table td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .rank-icon { font-size: 1.2em; }
+
+        .btn-home { background-color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="screen-start">
+            <h1>🧪 Labo de Chimie</h1>
+            <p>Ton nom de chercheur :</p>
+            <input type="text" id="user-name" placeholder="Ex: Marie Curie" maxlength="15">
+            <br><br>
+            <button onclick="validerProfil()">Entrer dans le labo ⚗️</button>
+        </div>
+
+        <div id="screen-menu" class="hidden">
+            <h1>Prêt, <span id="display-name"></span> ?</h1>
+            <p>Choisis ton niveau d'expérience :</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button onclick="lancerJeu('apprenti')">🔹 Apprenti (Trouver le Nom)</button>
+                <button class="expert" onclick="lancerJeu('expert')">🔸 Expert (Trouver le Symbole)</button>
+                <button style="background: #8e44ad" onclick="lancerJeu('alchimiste')">🧙‍♂️ Alchimiste (Mélange total)</button>
+            </div>
+        </div>
+
+        <div id="screen-game" class="hidden">
+            <div id="timer-badge">⏱️ 0s</div>
+            <h2 id="game-mode-title">Analyse...</h2>
+            <div id="questions-container"></div>
+            <button onclick="verifierReponses()">Finaliser le mélange ! 🧪</button>
+        </div>
+
+        <div id="screen-result" class="hidden">
+            <h1>Rapport d'Expérience</h1>
+            <div style="font-size: 1.2em; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 15px;">
+                Note : <b id="score-display"></b> | Points : <b id="points-display"></b>
+            </div>
+            
+            <h3>🏆 Top 10 des Chimistes</h3>
+            <table class="leaderboard-table">
+                <thead><tr><th>Rang</th><th>Nom</th><th>Points</th></tr></thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+            
+            <button onclick="location.reload()">🔄 Rejouer</button>
+            <button onclick="window.location.href='index.html'" class="btn-home">🏠 Accueil</button>
+        </div>
+    </div>
+
+    <script>
+        let userName = "", startTime, timerInterval, questions = [], modeActuel = "";
+
+        const elements = [
+            {n: "Hydrogène", s: "H", num: 1}, {n: "Hélium", s: "He", num: 2},
+            {n: "Carbone", s: "C", num: 6}, {n: "Azote", s: "N", num: 7},
+            {n: "Oxygène", s: "O", num: 8}, {n: "Fluor", s: "F", num: 9},
+            {n: "Néon", s: "Ne", num: 10}, {n: "Sodium", s: "Na", num: 11},
+            {n: "Magnésium", s: "Mg", num: 12}, {n: "Aluminium", s: "Al", num: 13},
+            {n: "Silicium", s: "Si", num: 14}, {n: "Phosphore", s: "P", num: 15},
+            {n: "Soufre", s: "S", num: 16}, {n: "Chlore", s: "Cl", num: 17},
+            {n: "Potassium", s: "K", num: 19}, {n: "Calcium", s: "Ca", num: 20},
+            {n: "Fer", s: "Fe", num: 26}, {n: "Cuivre", s: "Cu", num: 29},
+            {n: "Zinc", s: "Zn", num: 30}, {n: "Argent", s: "Ag", num: 47},
+            {n: "Iode", s: "I", num: 53}, {n: "Or", s: "Au", num: 79},
+            {n: "Mercure", s: "Hg", num: 80}, {n: "Plomb", s: "Pb", num: 82}
+        ];
+
+        function validerProfil() {
+            userName = document.getElementById('user-name').value.trim() || "Anonyme";
+            document.getElementById('display-name').innerText = userName;
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+        }
+
+        function lancerJeu(mode) {
+            modeActuel = mode;
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            document.getElementById('game-mode-title').innerText = "MODE : " + mode.toUpperCase();
+            genererQuestions();
+            afficherQuestions(mode);
+            startTimer();
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                document.getElementById('timer-badge').innerText = `⏱️ ${Math.floor((Date.now() - startTime) / 1000)}s`;
+            }, 1000);
+        }
+
+        function genererQuestions() {
+            questions = [...elements].sort(() => 0.5 - Math.random()).slice(0, 10);
+        }
+
+        function afficherQuestions(mode) {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = "";
+
+            questions.forEach((q, i) => {
+                let questionText, placeholder, display;
+
+                if(mode === 'apprenti') {
+                    display = q.s;
+                    questionText = "Nom de l'élément ?";
+                    placeholder = "Ex: Oxygène";
+                } else if(mode === 'expert') {
+                    display = q.n;
+                    questionText = "Symbole ?";
+                    placeholder = "Ex: O";
+                } else {
+                    let isSymbol = Math.random() > 0.5;
+                    display = isSymbol ? q.s : q.n;
+                    questionText = isSymbol ? "Nom de l'élément ?" : "Symbole ?";
+                    q.typeMelange = isSymbol ? 'nom' : 'symbole';
+                }
+
+                container.innerHTML += `
+                    <div class="element-card" id="card-${i}">
+                        <span class="atomic-number">Z = ${q.num}</span>
+                        <span class="symbol-display">${display}</span>
+                        <p style="margin:5px 0; font-weight:bold; color:#555">${questionText}</p>
+                        <input type="text" id="rep-${i}" placeholder="${placeholder}" spellcheck="false" autocomplete="off">
+                        <div id="corr-${i}" class="correction hidden"></div>
+                    </div>`;
+            });
+        }
+
+        function verifierReponses() {
+            clearInterval(timerInterval);
+            let score = 0;
+            let tempsFin = Math.floor((Date.now() - startTime) / 1000);
+
+            questions.forEach((q, i) => {
+                const input = document.getElementById(`rep-${i}`);
+                const card = document.getElementById(`card-${i}`);
+                const corr = document.getElementById(`corr-${i}`);
+                let userVal = input.value.trim().toLowerCase();
+                
+                let isCorrect = false;
+                let reponseAttendue = "";
+
+                if(modeActuel === 'apprenti') {
+                    isCorrect = userVal === q.n.toLowerCase();
+                    reponseAttendue = q.n;
+                } else if(modeActuel === 'expert') {
+                    isCorrect = userVal === q.s.toLowerCase();
+                    reponseAttendue = q.s;
+                } else {
+                    isCorrect = (q.typeMelange === 'nom') ? (userVal === q.n.toLowerCase()) : (userVal === q.s.toLowerCase());
+                    reponseAttendue = (q.typeMelange === 'nom') ? q.n : q.s;
+                }
+
+                if (isCorrect) {
+                    score++;
+                    card.classList.add('correct');
+                } else {
+                    card.classList.add('wrong');
+                    corr.innerText = `⚠️ Solution : ${reponseAttendue}`;
+                    corr.classList.remove('hidden');
+                }
+            });
+
+            let pts = Math.max(0, (score * 250) - (tempsFin * 2));
+            document.getElementById('score-display').innerText = `${score}/10`;
+            document.getElementById('points-display').innerText = pts;
+            
+            sauvegarder(pts);
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+        }
+
+        function sauvegarder(pts) {
+            let scores = JSON.parse(localStorage.getItem('chem_scores_v2') || "[]");
+            scores.push({ name: userName, points: pts });
+            scores.sort((a, b) => b.points - a.points);
+            localStorage.setItem('chem_scores_v2', JSON.stringify(scores.slice(0, 10)));
+            
+            const emojis = ["🥇", "🥈", "🥉", "⚗️", "🧪", "🔬", "⚛️", "🌡️", "🔋", "💎"];
+            document.getElementById('leaderboard-body').innerHTML = scores.slice(0, 10).map((s, i) => `
+                <tr>
+                    <td><span class="rank-icon">${emojis[i] || "🧪"}</span></td>
+                    <td>${s.name}</td>
+                    <td><b>${s.points}</b> pts</td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
