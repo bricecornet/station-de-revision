@@ -1,6 +1,8 @@
 # station-de-revision
 Station de révision est une application open source de jeux éducatifs pour enfants (et adultes). Maths, conjugaison, biologie, chimie, histoire, solfège et Tetris, avec niveaux évolutifs selon l’âge. PC et mobile. Bientôt intégrée à SIMPLE CRM.
 
+![Station de révision – aperçu de l'application](https://raw.githubusercontent.com/bricecornet/station-de-revision/refs/heads/main/screen-shot.png)
+
 # 🎮 Station de révision
 
 ## 🚀 Quand les enfants envahissent les bureaux…
@@ -54,3 +56,4 @@ Et face à l’enthousiasme rencontré, une décision s’est imposée naturelle
 Le projet est ouvert aux idées, améliorations et contributions des mamans et papas. 
 Parce qu’apprendre peut (et doit) rester un jeu. 🎲✨
 
+![Station de révision – aperçu de l'application](https://raw.githubusercontent.com/bricecornet/station-de-revision/refs/heads/main/screen-shot-2.png)
